@@ -6,7 +6,6 @@ import requests
 import gspread 
 from google.oauth2 import service_account
 
-
 def gerar_df_phoenix(vw_name, base_luck):
 
     config = {
@@ -47,7 +46,13 @@ def puxar_aba_simples(id_gsheet, nome_aba, nome_df):
 
 def gerar_listas_de_nao_cadastrados(df, coluna):
 
-    lista_a_atualizar = st.session_state.df_escalas_atualizar[coluna].unique().tolist()
+    if coluna=='Guia':
+
+        lista_a_atualizar = st.session_state.df_escalas_atualizar[st.session_state.df_escalas_atualizar[coluna]!=''][coluna].unique().tolist()
+
+    else:
+
+        lista_a_atualizar = st.session_state.df_escalas_atualizar[coluna].unique().tolist()
 
     lista_phoenix = st.session_state[df][coluna].unique().tolist()
 
@@ -270,15 +275,26 @@ if atualizar_escalas:
 
         id_motorista = int(st.session_state.df_motoristas[st.session_state.df_motoristas['Motorista']==motorista]['id'].iloc[0])
 
-        id_guia = int(st.session_state.df_guias[st.session_state.df_guias['Guia']==guia]['id'].iloc[0])
+        if guia!='':
 
-        payload = {
-                "date": date_str,
-                "vehicle_id": id_veiculo,
-                "driver_id": id_motorista,
-                "guide_id": id_guia,
-                "reserve_service_ids": id_servicos,
-            }
+            id_guia = int(st.session_state.df_guias[st.session_state.df_guias['Guia']==guia]['id'].iloc[0])
+
+            payload = {
+                    "date": date_str,
+                    "vehicle_id": id_veiculo,
+                    "driver_id": id_motorista,
+                    "guide_id": id_guia,
+                    "reserve_service_ids": id_servicos,
+                }
+            
+        else:
+
+            payload = {
+                    "date": date_str,
+                    "vehicle_id": id_veiculo,
+                    "driver_id": id_motorista,
+                    "reserve_service_ids": id_servicos,
+                }
         
         escalas_para_atualizar.append(payload)
 
