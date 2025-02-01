@@ -327,4 +327,10 @@ if atualizar_escalas:
 
     with st.spinner('Inserindo novos códigos de escala no Google Drive...'):
 
-        inserir_novas_escalas_drive(st.session_state.df_escalas_atualizar, st.session_state.id_gsheet, 'Atualizar Escalas')
+        puxar_aba_simples(st.session_state.id_gsheet, 'Atualizar Escalas', 'df_escalas_gsheet')
+
+        st.session_state.df_escalas_gsheet = st.session_state.df_escalas_gsheet[st.session_state.df_escalas_gsheet['Escala Nova']!=''].reset_index(drop=True)
+
+        df_insercao = pd.concat([st.session_state.df_escalas_gsheet, st.session_state.df_escalas_atualizar], ignore_index=True)
+
+        inserir_novas_escalas_drive(df_insercao, st.session_state.id_gsheet, 'Atualizar Escalas')
