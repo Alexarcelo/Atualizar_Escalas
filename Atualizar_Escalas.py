@@ -302,11 +302,11 @@ if atualizar_escalas:
     placeholder.dataframe(escalas_para_atualizar)
     for escala in escalas_para_atualizar:
         escala_atual = escala.copy()
-        if escala_atual['guide_id'] == None:
+        if pd.isna(escala_atual['guide_id']):
             escala_atual.pop('guide_id')
-        if escala_atual['driver_id'] == None:
+        if pd.isna(escala_atual['driver_id']):
             escala_atual.pop('driver_id')
-        if escala_atual['vehicle_id'] == None:
+        if pd.isna(escala_atual['vehicle_id']):
             escala_atual.pop('vehicle_id')
         status = update_scale(escala_atual)
         escala['status'] = status
