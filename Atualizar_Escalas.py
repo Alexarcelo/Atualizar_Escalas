@@ -133,17 +133,58 @@ def puxar_dados_phoenix():
 
     st.session_state.df_escalas = gerar_df_phoenix('vw_scales', st.session_state.base_luck)
 
-    st.session_state.df_motoristas = gerar_df_phoenix('vw_motoristas', 'test_phoenix_joao_pessoa')
+    st.session_state.df_motoristas = gerar_df_phoenix('vw_motoristas', st.session_state.base_luck)
 
     st.session_state.df_motoristas = st.session_state.df_motoristas.rename(columns={'nickname': 'Motorista'})
 
-    st.session_state.df_guias = gerar_df_phoenix('vw_guias', 'test_phoenix_joao_pessoa')
+    st.session_state.df_guias = gerar_df_phoenix('vw_guias', st.session_state.base_luck)
 
     st.session_state.df_guias = st.session_state.df_guias.rename(columns={'nickname': 'Guia'})
 
     st.session_state.df_veiculos = gerar_df_phoenix('vw_veiculos', st.session_state.base_luck)
 
     st.session_state.df_veiculos = st.session_state.df_veiculos.rename(columns={'name': 'Veiculo'})
+
+def gerar_lista_payload(df_escalas_a_atualizar):
+
+    escalas_para_atualizar = []
+
+    for index, row in st.session_state.df_escalas_atualizar.iterrows():
+
+        df_ref = df_escalas_a_atualizar[df_escalas_a_atualizar['Escala']==row['Escala']]
+
+        id_servicos = df_ref['ID Servico'].iloc[0]
+
+        date_str = df_ref['Data da Escala'].iloc[0].strftime('%Y-%m-%d')
+
+        id_veiculo = int(st.session_state.df_veiculos[st.session_state.df_veiculos['Veiculo']==row['Veiculo']]['id'].iloc[0])
+
+        id_motorista = int(st.session_state.df_motoristas[st.session_state.df_motoristas['Motorista']==row['Motorista']]['id'].iloc[0])
+
+        if row['Guia']!='':
+
+            id_guia = int(st.session_state.df_guias[st.session_state.df_guias['Guia']==row['Guia']]['id'].iloc[0])
+
+            payload = {
+                    "date": date_str,
+                    "vehicle_id": id_veiculo,
+                    "driver_id": id_motorista,
+                    "guide_id": id_guia,
+                    "reserve_service_ids": id_servicos,
+                }
+            
+        else:
+
+            payload = {
+                    "date": date_str,
+                    "vehicle_id": id_veiculo,
+                    "driver_id": id_motorista,
+                    "reserve_service_ids": id_servicos,
+                }
+        
+        escalas_para_atualizar.append(payload)
+
+    return escalas_para_atualizar
 
 st.set_page_config(layout='wide')
 
@@ -225,11 +266,11 @@ with row1[1]:
 
     atualizar_phoenix = st.button('Atualizar Dados Phoenix')
 
-if atualizar_phoenix:
+    if atualizar_phoenix:
 
-    with st.spinner('Puxando dados do Phoenix...'):
+        with st.spinner('Puxando dados do Phoenix...'):
 
-        puxar_dados_phoenix()
+            puxar_dados_phoenix()
 
 with row1[0]:
 
@@ -253,50 +294,9 @@ if atualizar_escalas:
 
     df_escalas_a_atualizar = st.session_state.df_escalas[st.session_state.df_escalas['Escala'].isin(st.session_state.df_escalas_atualizar['Escala'].unique())].reset_index(drop=True)
 
-    escalas_para_atualizar = []
+    df_escalas_a_atualizar = df_escalas_a_atualizar.groupby(['Data da Escala', 'Escala']).agg({'ID Servico': lambda x: list(x)}).reset_index()
 
-    for index in range(len(st.session_state.df_escalas_atualizar)):
-
-        escala = st.session_state.df_escalas_atualizar.at[index, 'Escala']
-
-        veiculo = st.session_state.df_escalas_atualizar.at[index, 'Veiculo']
-
-        motorista = st.session_state.df_escalas_atualizar.at[index, 'Motorista']
-
-        guia = st.session_state.df_escalas_atualizar.at[index, 'Guia']
-
-        df_ref = df_escalas_a_atualizar[df_escalas_a_atualizar['Escala']==escala]
-
-        id_servicos = [int(item) for item in df_ref['ID Servico'].tolist()]
-
-        date_str = df_ref['Data da Escala'].values[0].strftime('%Y-%m-%d')
-
-        id_veiculo = int(st.session_state.df_veiculos[st.session_state.df_veiculos['Veiculo']==veiculo]['id'].iloc[0])
-
-        id_motorista = int(st.session_state.df_motoristas[st.session_state.df_motoristas['Motorista']==motorista]['id'].iloc[0])
-
-        if guia!='':
-
-            id_guia = int(st.session_state.df_guias[st.session_state.df_guias['Guia']==guia]['id'].iloc[0])
-
-            payload = {
-                    "date": date_str,
-                    "vehicle_id": id_veiculo,
-                    "driver_id": id_motorista,
-                    "guide_id": id_guia,
-                    "reserve_service_ids": id_servicos,
-                }
-            
-        else:
-
-            payload = {
-                    "date": date_str,
-                    "vehicle_id": id_veiculo,
-                    "driver_id": id_motorista,
-                    "reserve_service_ids": id_servicos,
-                }
-        
-        escalas_para_atualizar.append(payload)
+    escalas_para_atualizar = gerar_lista_payload(df_escalas_a_atualizar)
 
     placeholder = st.empty()
     placeholder.dataframe(escalas_para_atualizar)
